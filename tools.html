@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công cụ Kỹ thuật - My Vault</title>
+    <style>
+        :root { --primary-color: #f97316; --bg-color: #fafafa; --text-main: #333; --card-bg: #fff; }
+        body.dark-mode { --bg-color: #18181b; --text-main: #f4f4f5; --card-bg: #27272a; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { grid-column: 1 / -1; display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+        .back-btn { text-decoration: none; font-size: 1.5rem; color: var(--text-main); }
+        
+        /* Menu Grid */
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .menu-item {
+            background: var(--card-bg); padding: 30px; border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer;
+            font-size: 1.2rem; font-weight: bold; text-align: center;
+            border: 2px solid transparent; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+        }
+        .menu-item:hover { border-color: var(--primary-color); transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+
+        /* Tool Card Styling */
+        .tool-card { 
+            display: none; /* Ẩn mặc định */
+            background: var(--card-bg); border-radius: 24px; 
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05); 
+            overflow: hidden; border: 1px solid rgba(0,0,0,0.05);
+            flex-direction: column; min-height: 60vh;
+        }
+        .tool-card.active { display: flex; animation: fadeIn 0.3s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .tool-header-wrapper {
+            padding: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.02), transparent);
+            border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 15px;
+        }
+        .tool-logo {
+            width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); flex-shrink: 0;
+        }
+        .tool-logo svg { width: 28px; height: 28px; fill: currentColor; }
+        .tool-info h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+        .tool-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-main); opacity: 0.6; }
+        
+        .tool-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 15px; }
+
+        select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit; }
+        button { background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+
+        /* Hex Viewer */
+        .hex-view {
+            font-family: 'Consolas', monospace; background: #1e1e1e; color: #00ff00;
+            padding: 15px; border-radius: 8px; height: 300px; overflow-y: auto;
+            white-space: pre; font-size: 13px; border: 1px solid #333;
+        }
+
+        /* Image Processor */
+        .img-workspace { display: flex; gap: 20px; flex-wrap: wrap; }
+        .img-preview { flex: 1; min-width: 300px; background: rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; border-radius: 8px; overflow: hidden; height: 400px; }
+        .img-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .img-controls { width: 250px; display: flex; flex-direction: column; gap: 10px; }
+        .control-group { background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px; }
+        .control-label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; display: block; }
+
+        /* Password Generator */
+        .pass-display { 
+            background: rgba(0,0,0,0.05); padding: 15px; border-radius: 8px; font-family: 'Consolas', monospace; 
+            font-size: 1.2rem; text-align: center; letter-spacing: 1px; word-break: break-all; margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.1);
+        }
+        .pass-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn" id="global-back-btn">←</a>
+            <button class="back-btn" id="tool-back-btn" onclick="closeTool()" style="display:none; background:none; border:none; cursor:pointer; padding:0;">←</button>
+            <h1>Công cụ Kỹ thuật</h1>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="menu-grid">
+            <div class="menu-item" onclick="openTool('tool-hex')">🔍 Hex Viewer</div>
+            <div class="menu-item" onclick="openTool('tool-img')">🎨 Image Studio</div>
+            <div class="menu-item" onclick="openTool('tool-audio')">🎙️ Voice Recorder</div>
+            <div class="menu-item" onclick="openTool('tool-cam')">📸 Camera</div>
+            <div class="menu-item" onclick="openTool('tool-paint')">🖌️ Paint</div>
+            <div class="menu-item" onclick="openTool('tool-pass')">🔐 PassGen</div>
+        </div>
+
+        <!-- Hex Viewer -->
+        <div id="tool-hex" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                    <svg viewBox="0 0 24 24"><path d="M9.5 3L2 9.5 9.5 16 17 9.5 9.5 3zm0 10.1L4.9 9.5 9.5 5.9l4.6 3.6-4.6 3.6zm12.5-3.6l-2.5-2.2v-2l2.5 2.2V9.5zm0 4.4l-2.5 2.2v-2l2.5-2.2v2zM17 14.5l2.5 2.2v2L17 16.5v-2z"/></svg>
+                </div>
+                <div class="tool-info"><h3>Hex Viewer</h3><p>Phân tích mã nhị phân</p></div>
+            </div>
+            <div class="tool-body">
+                <div style="display: flex; gap: 10px;">
+                    <select id="hex-file-select" style="flex: 1;"></select>
+                    <button onclick="loadHex()">Đọc Hex</button>
+                </div>
+                <div id="hex-output" class="hex-view">Chọn một tệp để xem mã Hex...</div>
+            </div>
+        </div>
+
+        <!-- Image Processor -->
+        <div id="tool-img" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                </div>
+                <div class="tool-info"><h3>Image Studio</h3><p>Bộ lọc & Chuyển đổi ảnh</p></div>
+            </div>
+            <div class="tool-body">
+                <div style="display: flex; gap: 10px;">
+                    <select id="img-file-select" style="flex: 1;"></select>
+                    <button onclick="loadImage()">Tải ảnh</button>
+                </div>
+                <div class="img-workspace">
+                    <div class="img-preview">
+                        <img id="target-img" src="" alt="Preview">
+                    </div>
+                    <div class="img-controls">
+                        <div class="control-group">
+                            <span class="control-label">Bộ lọc</span>
+                            <button onclick="applyFilter('grayscale(100%)')" style="width:100%; margin-bottom:5px;">Trắng đen</button>
+                            <button onclick="applyFilter('sepia(100%)')" style="width:100%; margin-bottom:5px;">Sepia</button>
+                            <button onclick="applyFilter('blur(5px)')" style="width:100%; margin-bottom:5px;">Làm mờ</button>
+                            <button onclick="applyFilter('none')" style="width:100%; background:#666;">Gỡ bỏ</button>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label">Định dạng xuất</span>
+                            <select id="export-format" style="width:100%;">
+                                <option value="image/jpeg">JPEG (Nhẹ)</option>
+                                <option value="image/png">PNG (Chất lượng)</option>
+                                <option value="image/webp">WebP (Hiện đại)</option>
+                            </select>
+                        </div>
+                        <button onclick="saveProcessedImage()" style="margin-top:auto; padding: 15px;">LƯU VÀO VAULT</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Recorder -->
+        <div id="tool-audio" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                </div>
+                <div class="tool-info"><h3>Voice Recorder</h3><p>Ghi âm giọng nói</p></div>
+            </div>
+            <div class="tool-body">
+                <div class="control-group" style="display:flex; gap:10px; align-items:center; justify-content: space-between;">
+                    <div>
+                        <button id="btn-record-start" onclick="startRecording()">🔴 Bắt đầu</button>
+                        <button id="btn-record-stop" onclick="stopRecording()" disabled style="background:#ef4444; opacity: 0.5;">⏹️ Dừng</button>
+                    </div>
+                    <span id="record-timer" style="font-weight:bold; font-family:monospace; font-size:1.2rem;">00:00</span>
+                </div>
+                <audio id="audio-preview" controls style="width:100%; display:none;"></audio>
+                <button id="btn-save-audio" onclick="saveRecording()" style="width:100%; display:none;">💾 Lưu vào Vault</button>
+            </div>
+        </div>
+
+        <!-- Camera -->
+        <div id="tool-cam" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <svg viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                </div>
+                <div class="tool-info"><h3>Camera</h3><p>Chụp ảnh trực tiếp</p></div>
+            </div>
+            <div class="tool-body">
+                <div style="position:relative; background:black; border-radius:8px; overflow:hidden; height:300px; display:flex; justify-content:center; align-items:center;">
+                    <video id="cam-feed" autoplay playsinline style="width:100%; height:100%; object-fit:contain; display:none;"></video>
+                    <div id="cam-placeholder" style="color:white;">Nhấn "Bật Camera" để bắt đầu</div>
+                    <canvas id="cam-canvas" style="display:none;"></canvas>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="startCamera()">Bật Camera</button>
+                    <button onclick="takePhoto()" id="btn-take-photo" disabled style="opacity:0.5;">Chụp ảnh</button>
+                    <button onclick="stopCamera()" style="background:#666;">Tắt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paint -->
+        <div id="tool-paint" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                    <svg viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34c-.39-.39-1.02-.39-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/></svg>
+                </div>
+                <div class="tool-info"><h3>Paint</h3><p>Vẽ & Phác thảo</p></div>
+            </div>
+            <div class="tool-body">
+                <div style="border:1px solid #ccc; border-radius:8px; overflow:hidden; cursor:crosshair; touch-action: none;">
+                    <canvas id="paint-canvas" width="500" height="300" style="background:white; width:100%; display:block;"></canvas>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input type="color" id="paint-color" value="#000000" style="height:35px; cursor:pointer;">
+                    <input type="range" id="paint-size" min="1" max="20" value="5" title="Kích thước cọ">
+                    <button onclick="clearPaint()" style="background:#ef4444;">Xóa</button>
+                    <button onclick="savePaint()">💾 Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Generator (NEW) -->
+        <div id="tool-pass" class="tool-card">
+            <div class="tool-header-wrapper">
+                <div class="tool-logo" style="background: linear-gradient(135deg, #14b8a6, #0d9488);">
+                    <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                </div>
+                <div class="tool-info"><h3>PassGen</h3><p>Tạo mật khẩu an toàn</p></div>
+            </div>
+            <div class="tool-body">
+                <div class="pass-display" id="pass-output">Nhấn "Tạo" để bắt đầu</div>
+                <div class="pass-options">
+                    <label><input type="checkbox" id="pass-upper" checked> Chữ hoa (A-Z)</label>
+                    <label><input type="checkbox" id="pass-lower" checked> Chữ thường (a-z)</label>
+                    <label><input type="checkbox" id="pass-num" checked> Số (0-9)</label>
+                    <label><input type="checkbox" id="pass-sym"> Ký tự đặc biệt (!@#)</label>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="white-space:nowrap;">Độ dài: <span id="pass-len-val">12</span></label>
+                    <input type="range" id="pass-len" min="4" max="32" value="12" style="width:100%;" oninput="document.getElementById('pass-len-val').innerText = this.value">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="generatePassword()" style="flex:1;">🔄 Tạo Mật Khẩu</button>
+                    <button onclick="copyPassword()" style="background:#666;">📋 Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTH CHECK ---
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'index.html';
+        }
+
+        // --- INIT ---
+        const savedTheme = localStorage.getItem('themeColor');
+        if (savedTheme) document.documentElement.style.setProperty('--primary-color', savedTheme);
+        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+        // --- DB CONNECTION ---
+        const DB_NAME = "MyVaultDB";
+        let db;
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            populateFileSelects();
+        };
+
+        function populateFileSelects() {
+            const tx = db.transaction('files', 'readonly');
+            const store = tx.objectStore('files');
+            store.getAll().onsuccess = (e) => {
+                const files = e.target.result;
+                const hexSel = document.getElementById('hex-file-select');
+                const imgSel = document.getElementById('img-file-select');
+                
+                files.forEach(f => {
+                    // Hex select: All files
+                    const opt1 = document.createElement('option');
+                    opt1.value = f.id;
+                    opt1.innerText = f.name;
+                    hexSel.appendChild(opt1);
+
+                    // Img select: Only images
+                    if (f.type.startsWith('image/')) {
+                        const opt2 = document.createElement('option');
+                        opt2.value = f.id;
+                        opt2.innerText = f.name;
+                        imgSel.appendChild(opt2);
+                    }
+                });
+            };
+        }
+
+        // --- UI NAVIGATION ---
+        function openTool(toolId) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('global-back-btn').style.display = 'none';
+            document.getElementById('tool-back-btn').style.display = 'block';
+            document.getElementById(toolId).classList.add('active');
+        }
+
+        function closeTool() {
+            document.querySelectorAll('.tool-card').forEach(el => el.classList.remove('active'));
+            document.getElementById('main-menu').style.display = 'grid';
+            document.getElementById('global-back-btn').style.display = 'block';
+            document.getElementById('tool-back-btn').style.display = 'none';
+            stopCamera(); // Đảm bảo tắt camera khi thoát
+        }
+
+        // --- HEX VIEWER LOGIC ---
+        function loadHex() {
+            const id = document.getElementById('hex-file-select').value;
+            if (!id) return;
+            
+            const tx = db.transaction('files', 'readonly');
+            tx.objectStore('files').get(id).onsuccess = (e) => {
+                const file = e.target.result;
+                const reader = new FileReader();
+                reader.onload = function() {
+                    const buffer = this.result;
+                    const view = new DataView(buffer);
+                    let hex = '';
+                    // Limit to first 2KB for performance
+                    const limit = Math.min(buffer.byteLength, 2048);
+                    
+                    for (let i = 0; i < limit; i += 16) {
+                        // Offset
+                        hex += i.toString(16).padStart(8, '0') + '  ';
+                        
+                        // Hex bytes
+                        let ascii = '';
+                        for (let j = 0; j < 16; j++) {
+                            if (i + j < limit) {
+                                const byte = view.getUint8(i + j);
+                                hex += byte.toString(16).padStart(2, '0') + ' ';
+                                ascii += (byte >= 32 && byte <= 126) ? String.fromCharCode(byte) : '.';
+                            } else {
+                                hex += '   ';
+                            }
+                        }
+                        hex += ' | ' + ascii + '\n';
+                    }
+                    if (buffer.byteLength > limit) hex += '\n... (Truncated for performance)';
+                    document.getElementById('hex-output').innerText = hex;
+                };
+                reader.readAsArrayBuffer(file.data);
+            };
+        }
+
+        // --- IMAGE PROCESSOR LOGIC ---
+        let currentImgBlob = null;
+        let currentFilter = 'none';
+
+        function loadImage() {
+            const id = document.getElementById('img-file-select').value;
+            if (!id) return;
+            
+            const tx = db.transaction('files', 'readonly');
+            tx.objectStore('files').get(id).onsuccess = (e) => {
+                const file = e.target.result;
+                currentImgBlob = file.data;
+                document.getElementById('target-img').src = URL.createObjectURL(file.data);
+                currentFilter = 'none';
+                document.getElementById('target-img').style.filter = 'none';
+            };
+        }
+
+        function applyFilter(filter) {
+            currentFilter = filter;
+            document.getElementById('target-img').style.filter = filter;
+        }
+
+        function saveProcessedImage() {
+            if (!currentImgBlob) return;
+            
+            const img = document.getElementById('target-img');
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.filter = currentFilter;
+            ctx.drawImage(img, 0, 0);
+            
+            const format = document.getElementById('export-format').value;
+            
+            canvas.toBlob((blob) => {
+                const newFile = {
+                    id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    folderId: 'root',
+                    name: 'Processed_' + Date.now() + (format === 'image/jpeg' ? '.jpg' : (format === 'image/png' ? '.png' : '.webp')),
+                    type: format,
+                    size: blob.size,
+                    date: new Date().toLocaleDateString('vi-VN'),
+                    data: blob,
+                    isFavorite: false
+                };
+                
+                const tx = db.transaction('files', 'readwrite');
+                tx.objectStore('files').put(newFile);
+                alert("Đã lưu ảnh đã xử lý vào thư mục gốc!");
+            }, format, 0.9);
+        }
+
+        // --- AUDIO RECORDER LOGIC ---
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let recordInterval;
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = document.getElementById('audio-preview');
+                    audio.src = audioUrl;
+                    audio.style.display = 'block';
+                    document.getElementById('btn-save-audio').style.display = 'block';
+                };
+
+                mediaRecorder.start();
+                document.getElementById('btn-record-start').disabled = true;
+                document.getElementById('btn-record-start').style.opacity = 0.5;
+                document.getElementById('btn-record-stop').disabled = false;
+                document.getElementById('btn-record-stop').style.opacity = 1;
+
+                // Timer
+                let seconds = 0;
+                clearInterval(recordInterval);
+                recordInterval = setInterval(() => {
+                    seconds++;
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('record-timer').innerText = `${m}:${s}`;
+                }, 1000);
+
+            } catch (e) {
+                alert("Không thể truy cập microphone: " + e.message);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                clearInterval(recordInterval);
+                document.getElementById('btn-record-start').disabled = false;
+                document.getElementById('btn-record-start').style.opacity = 1;
+                document.getElementById('btn-record-stop').disabled = true;
+                document.getElementById('btn-record-stop').style.opacity = 0.5;
+            }
+        }
+
+        function saveRecording() {
+            if (!audioBlob) return;
+            saveFileToVault(audioBlob, 'Ghi_am_' + Date.now() + '.webm', 'audio/webm');
+        }
+
+        // --- CAMERA LOGIC ---
+        let camStream;
+
+        async function startCamera() {
+            if (camStream) stopCamera(); // Dừng camera cũ nếu đang chạy
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Trình duyệt không hỗ trợ Camera hoặc kết nối không an toàn (cần HTTPS/Localhost).");
+                return;
+            }
+            try {
+                camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const video = document.getElementById('cam-feed');
+                video.srcObject = camStream;
+                video.style.display = 'block';
+                video.play().catch(e => console.log("Autoplay error:", e));
+
+                document.getElementById('cam-placeholder').style.display = 'none';
+                
+                const btn = document.getElementById('btn-take-photo');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            } catch (e) {
+                console.error(e);
+                alert("Lỗi Camera: " + e.message + "\nVui lòng kiểm tra quyền truy cập.");
+            }
+        }
+
+        function stopCamera() {
+            if (camStream) {
+                camStream.getTracks().forEach(track => track.stop());
+                camStream = null;
+                document.getElementById('cam-feed').style.display = 'none';
+                document.getElementById('cam-placeholder').style.display = 'block';
+                
+                const btn = document.getElementById('btn-take-photo');
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('cam-feed');
+            const canvas = document.getElementById('cam-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob(blob => {
+                saveFileToVault(blob, 'Anh_chup_' + Date.now() + '.png', 'image/png');
+            });
+        }
+
+        // --- PAINT LOGIC ---
+        const canvas = document.getElementById('paint-canvas');
+        const ctx = canvas.getContext('2d');
+        let painting = false;
+
+        function startPosition(e) { painting = true; draw(e); }
+        function finishedPosition() { painting = false; ctx.beginPath(); }
+        function draw(e) {
+            if (!painting) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineWidth = document.getElementById('paint-size').value;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = document.getElementById('paint-color').value;
+            
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', finishedPosition);
+        canvas.addEventListener('mousemove', draw);
+        
+        function clearPaint() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        function savePaint() {
+            canvas.toBlob(blob => {
+                saveFileToVault(blob, 'Tranh_ve_' + Date.now() + '.png', 'image/png');
+            });
+        }
+
+        // --- HELPER: SAVE TO VAULT ---
+        function saveFileToVault(blob, name, type) {
+            const newFile = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                folderId: 'root',
+                name: name,
+                type: type,
+                size: blob.size,
+                date: new Date().toLocaleDateString('vi-VN'),
+                data: blob,
+                isFavorite: false
+            };
+            const tx = db.transaction('files', 'readwrite');
+            tx.objectStore('files').put(newFile);
+            alert("Đã lưu thành công vào thư mục gốc!");
+        }
+
+        // --- PASSWORD GENERATOR LOGIC ---
+        function generatePassword() {
+            const len = document.getElementById('pass-len').value;
+            const useUpper = document.getElementById('pass-upper').checked;
+            const useLower = document.getElementById('pass-lower').checked;
+            const useNum = document.getElementById('pass-num').checked;
+            const useSym = document.getElementById('pass-sym').checked;
+
+            const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const lower = "abcdefghijklmnopqrstuvwxyz";
+            const num = "0123456789";
+            const sym = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+
+            let chars = "";
+            if (useUpper) chars += upper;
+            if (useLower) chars += lower;
+            if (useNum) chars += num;
+            if (useSym) chars += sym;
+
+            if (chars === "") return alert("Vui lòng chọn ít nhất một loại ký tự!");
+
+            let password = "";
+            for (let i = 0; i < len; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('pass-output').innerText = password;
+        }
+
+        function copyPassword() {
+            const pass = document.getElementById('pass-output').innerText;
+            if (pass && !pass.includes("Nhấn")) {
+                navigator.clipboard.writeText(pass);
+                alert("Đã sao chép mật khẩu!");
+            }
+        }
+    </script>
+</body>
+</html>

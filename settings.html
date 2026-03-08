@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt - My Vault</title>
+    <style>
+        :root {
+            --primary-color: #f97316;
+            --bg-color: #fafafa;
+            --text-main: #333;
+            --card-bg: #fff;
+        }
+        body.dark-mode {
+            --bg-color: #18181b;
+            --text-main: #f4f4f5;
+            --card-bg: #27272a;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; transition: background 0.3s; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        .back-btn { text-decoration: none; font-size: 1.5rem; color: var(--text-main); }
+        h1 { margin: 0; }
+        
+        .section { background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section-title { font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; background: var(--bg-color); color: var(--text-main); box-sizing: border-box; }
+        
+        .btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+        .btn-danger { background: #ef4444; }
+        
+        .theme-grid { display: flex; gap: 10px; }
+        .theme-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .theme-dot.active { border-color: var(--text-main); transform: scale(1.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">←</a>
+            <h1>Cài đặt</h1>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Bảo mật</div>
+            <div class="form-group">
+                <label>Đổi mật khẩu đăng nhập</label>
+                <input type="password" id="new-pass" placeholder="Nhập mật khẩu mới...">
+            </div>
+            <button class="btn" onclick="savePassword()">Lưu mật khẩu</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Giao diện</div>
+            <div class="form-group">
+                <label>Màu chủ đạo</label>
+                <div class="theme-grid">
+                    <div class="theme-dot" style="background:#f97316" onclick="setTheme('#f97316')"></div>
+                    <div class="theme-dot" style="background:#3b82f6" onclick="setTheme('#3b82f6')"></div>
+                    <div class="theme-dot" style="background:#10b981" onclick="setTheme('#10b981')"></div>
+                    <div class="theme-dot" style="background:#8b5cf6" onclick="setTheme('#8b5cf6')"></div>
+                    <div class="theme-dot" style="background:#ef4444" onclick="setTheme('#ef4444')"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="dark-mode-toggle" style="width:auto;" onchange="toggleDarkMode()">
+                    Chế độ tối (Dark Mode)
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Dữ liệu</div>
+            <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">Xóa toàn bộ dữ liệu sẽ làm mất tất cả tệp tin vĩnh viễn.</p>
+            <button class="btn btn-danger" onclick="resetApp()">Xóa toàn bộ dữ liệu & Reset App</button>
+        </div>
+    </div>
+
+    <script>
+        // Load settings on start
+        const savedTheme = localStorage.getItem('themeColor') || '#f97316';
+        document.documentElement.style.setProperty('--primary-color', savedTheme);
+        
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-mode-toggle').checked = true;
+        }
+
+        function savePassword() {
+            const newPass = document.getElementById('new-pass').value;
+            if (newPass.length < 4) {
+                alert("Mật khẩu quá ngắn!");
+                return;
+            }
+            localStorage.setItem('appPassword', newPass);
+            alert("Đã đổi mật khẩu thành công!");
+            document.getElementById('new-pass').value = '';
+        }
+
+        function setTheme(color) {
+            document.documentElement.style.setProperty('--primary-color', color);
+            localStorage.setItem('themeColor', color);
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function resetApp() {
+            if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu không? Hành động này không thể hoàn tác!")) {
+                // Clear IndexedDB
+                const req = indexedDB.deleteDatabase("MyVaultDB");
+                req.onsuccess = () => {
+                    localStorage.clear();
+                    alert("Đã reset ứng dụng. Trang sẽ tải lại.");
+                    window.location.href = "index.html";
+                };
+                req.onerror = () => alert("Lỗi khi xóa dữ liệu.");
+            }
+        }
+    </script>
+</body>
+</html>
